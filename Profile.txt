@@ -1,0 +1,72 @@
+<?php
+require 'connection.php';
+require 'vendor/autoload.php';
+/*$link=mysqli_connect($host, $user, $password, $database);
+
+if(mysqli_connect_errno())
+{
+	echo 'Ошибка в подключениии к БД('.mysqli_connect_errno().') :';
+	exit();
+}*/
+if(isset($_POST["print"]))
+{
+$a=$_POST['a'];
+$N=count($a);
+$name=date("Y_m_d_H_i_s");
+$name=$name.'.docx';
+$phpWord = new  \PhpOffice\PhpWord\PhpWord();
+$phpWord->setDefaultFontName('Times New Roman');
+$phpWord->setDefaultFontSize(14);
+
+$properties = $phpWord->getDocInfo();
+
+$properties->setCreator('My name');
+$properties->setCompany('My factory');
+$properties->setTitle('My title');
+$properties->setDescription('My description');
+$properties->setCategory('My category');
+$properties->setLastModifiedBy('My name');
+$properties->setCreated(mktime(0, 0, 0, 3, 12, 2014));
+$properties->setModified(mktime(0, 0, 0, 3, 14, 2014));
+$properties->setSubject('My subject');
+$properties->setKeywords('my, key, word');
+
+$sectionStyle = array();
+$section = $phpWord->addSection($sectionStyle);
+if(isset($_POST['img'])){
+$img='"'.$_POST['img'].'"';
+$section->addImage($_POST['img'], array('width'=>100, 'height'=>100, 'align'=>'right'));
+}
+for($i=0; $i<$N;$i++)
+{
+	$text=$a[$i]."\n";
+$section->addText(htmlspecialchars($text),
+			array(),
+			array()
+					);
+}
+$objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord,'Word2007');
+$objWriter->save($name);	
+
+$file=$name;
+// Контент-тип означающий скачивание
+header("Content-Type: application/octet-stream");
+
+// Размер в байтах
+header("Accept-Ranges: bytes");
+
+// Размер файла
+header("Content-Length: ".filesize($file));
+
+// Расположение скачиваемого файла
+header("Content-Disposition: attachment; filename=".$file);  
+
+// Прочитать файл
+readfile($file);
+unlink($name);	
+//header('Location: /dataOfNurses.php');
+}
+
+
+			mysqli_close($link);
+?>

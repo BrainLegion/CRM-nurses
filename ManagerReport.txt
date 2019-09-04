@@ -1,0 +1,265 @@
+<?php
+require 'connection.php';
+require 'vendor/autoload.php';
+/*$link=mysqli_connect($host, $user, $password, $database);
+
+if(mysqli_connect_errno())
+{
+	echo 'Ошибка в подключениии к БД('.mysqli_connect_errno().') :';
+	exit();
+}*/
+$phpWord = new  \PhpOffice\PhpWord\PhpWord();
+$phpWord->setDefaultFontName('Times New Roman');
+$phpWord->setDefaultFontSize(14);
+
+$properties = $phpWord->getDocInfo();
+
+$properties->setCreator('My name');
+$properties->setCompany('My factory');
+$properties->setTitle('My title');
+$properties->setDescription('My description');
+$properties->setCategory('My category');
+$properties->setLastModifiedBy('My name');
+$properties->setCreated(mktime(0, 0, 0, 3, 12, 2014));
+$properties->setModified(mktime(0, 0, 0, 3, 14, 2014));
+$properties->setSubject('My subject');
+$properties->setKeywords('my, key, word');
+
+$sectionStyle = array('orientation' => 'landscape');
+$section = $phpWord->addSection($sectionStyle);
+$id=$_POST['ManagerId'];
+$start=$_POST['start'];
+$end=$_POST['end'];
+							$sql5 = "SELECT FIO, Salary
+							FROM Manager where id=$id";
+							$result5 = mysqli_query($link, $sql5);
+							$data5=mysqli_fetch_all($result5,1);
+							foreach ($data5 as $dat) {
+								$okl=$dat['Salary'];
+      $name=date("Y_m_d_H_i_s"); 
+	  $name='file/Manager'.$name.'.docx';
+	  $FIO=$dat['FIO'];
+	  $section->addTextBreak(1); // перенос строки
+	  $section->addText('Отчет', array('bold' => true), array('alignment' => 'center'));
+	  $section->addText("оплаченных договоров социального менеджера за ", array('bold' => true), array('alignment' => 'center'));
+	  $section->addText($start.' - '.$end, array('bold' => true), array('alignment' => 'center'));
+	  $section->addText($dat['FIO'], array('bold' => true), array('alignment' => 'center'));
+							}
+      $styleTable = array('borderSize' => 6, 'borderColor' => '999999');
+      $cellRowSpan = array('vMerge' => 'restart', 'valign' => 'center');
+      $cellRowContinue = array('vMerge' => 'continue');
+      $cellColSpan2 = array('gridSpan' => 2, 'valign' => 'center');
+      $cellColSpan3 = array('gridSpan' => 3, 'valign' => 'center');
+      $cellHCentered = array('align' => 'center');
+      $cellVCentered = array('valign' => 'center');
+      $phpWord->addTableStyle('Colspan Rowspan', $styleTable);
+      $table = $section->addTable('Colspan Rowspan');
+      $table->addRow(null, array('tblHeader' => true));
+      $table->addCell(2000, $cellVCentered)->addText('№ п/п', array('bold' => true), $cellHCentered);
+      $table->addCell(2000, $cellVCentered)->addText('Заказчик', array('bold' => true), $cellHCentered);
+      $table->addCell(2000, $cellVCentered)->addText('Срок действия договора', array('bold' => true), $cellHCentered);
+      $table->addCell(2000, $cellColSpan2)->addText('Сумма договора (офис)', array('bold' => true), $cellHCentered);
+      $table->addCell(2000, $cellColSpan2)->addText('Полный объём работы менеджера (за месяц)', array('bold' => true), $cellHCentered);
+	  $table->addCell(2000, $cellColSpan2)->addText('Статус заказа', array('bold' => true), $cellHCentered);
+	  $table->addCell(2000, $cellColSpan2)->addText('Прим.', array('bold' => true), $cellHCentered);
+
+		$sql5 = "SELECT *
+				FROM Contracts where ((Start between '$start' and '$end' or 
+				End between '$start' and '$end' or
+				(Start<='$start' and End>='$end')) or Datepayment between '$start' and '$end') and ManagerId=$id ";
+		$result5 = mysqli_query($link, $sql5);
+		$data5=mysqli_fetch_all($result5,1);
+		$summ1=0;//общая
+		$summ2=0;//офис
+		$summ3=0;//менеджер
+		$number=0;
+		$name1='afsdvsd';
+		//Статусы договоров
+		$new=0;//новые договора
+		$long=0;//пролонгированные
+		$endCont=0;//завершенные
+		///----------------
+		foreach ($data5 as $dat) 
+		{
+			if($dat['Status']==1 and $start<=$dat['Start'])
+			{
+				$new++;
+			}
+			else if($dat['Status']==2 and $start<=$dat['Start'])
+			{
+				$long++;
+			}
+			else if($dat['Status']==3 and $start<=$dat['Start'])
+			{
+				$endCont++;
+			}
+			/*if($dat['Start']>$start)
+			{
+				$start1=$dat['Start'];
+			}
+			else
+			{
+				$start1=$start;
+			}
+			
+			if($dat['End']<$end)
+			{
+				$end1=$dat['End'];
+			}
+			else
+			{
+				$end1=$end;
+			}*/
+			//if(date('m',strtotime($dat['End']))==(date('m',strtotime($end))+1))
+				if(date('m',strtotime($dat['End']))>(date('m',strtotime($end))) and $dat['Output']==1)
+			{$d=1;}
+			else
+			{
+				$d=0;
+			}
+			$IdCon=$dat['Id'];
+			$sql7 = "SELECT  count(Id) as 'days',(SELECT  count(Id) FROM DateContracts where  Id_C=$IdCon and (Date between '$start' and '$end'))as 'daysm'
+				FROM DateContracts where  Id_C=$IdCon ";
+			$result7 = mysqli_query($link, $sql7);
+			$data7=mysqli_fetch_all($result7,1);
+			//расчет количества дней для нового диапазона
+			foreach($data7 as $dat12) {
+				$kol=$dat12['days']-$dat['Output'];//количество дней в договоре за весь период
+				$kolm=$dat12['daysm']-$dat['Output']+$d;//количество дней в договоре за текущий месяц
+				
+			}
+			//Подсчет премии
+			$sql7 = "SELECT  Sum(Sum) as S
+				FROM Prize where  Id_C=$IdCon and (Date between '$start' and '$end')";
+			$result7 = mysqli_query($link, $sql7);
+			$data7=mysqli_fetch_all($result7,1);
+			foreach($data7 as $dat12) {
+				$Prize=$dat12['S'];//
+				
+			}
+			$dateStart = new DateTime($start);//дата заданного диапазона
+			$datePayment = new DateTime($dat['Datepayment']);//дата оплаты договора
+			$Office=$dat['Sum']-$dat['Rate_s']-$dat['Allocations'];
+			
+			if( $dateStart->format('Y-m')==$datePayment->format('Y-m')){
+					$summ1+=$dat['Sum']*$kol;//Сумма всех договоров
+					$summ2+=$Office*$kol;//Доля офиса
+			}
+
+			$cost1=round($kolm*$Office,1)+$Prize;
+			$summ3+=$cost1;
+			$table->addRow(null, array('tblHeader' => true));
+			if($name1!=$dat['FIO'])
+			{
+				$number++;
+				$table->addCell(2000, $cellVCentered)->addText($number, null, $cellHCentered);
+				$table->addCell(2000, $cellVCentered)->addText($dat['FIO'], null, $cellHCentered);
+			}
+			else
+			{
+				$table->addCell(2000, $cellVCentered)->addText($datenew, null, $cellHCentered);
+				$table->addCell(2000, $cellVCentered)->addText('', null, $cellHCentered);
+			}
+			$name1=$dat['FIO'];//фио заказчика
+
+			$table->addCell(2000, $cellVCentered)->addText(date('m.d.Y',strtotime($dat['Start'])).' '.date('m.d.Y',strtotime($dat['End'])), null, $cellHCentered);
+			
+			$dateStart1=new DateTime($dat['Start']);//дата начала договора
+			if( $dateStart->format('Y-m')==$datePayment->format('Y-m')){
+			$table->addCell(2000, $cellColSpan2)->addText($dat['Sum']*$kol.'        ('.$Office*$kol.')', null, $cellHCentered);
+			$Allocations=$dat['Allocations'];//Налоговый сбор
+			}
+			else
+			{	$table->addCell(2000, $cellVCentered)->addText('', null, $cellHCentered);
+				$Allocations=0;//Налоговый сбор
+			}
+		
+			$table->addCell(2000, $cellColSpan2)->addText($cost1, null, $cellHCentered);
+
+			if($dat['Status']==3)
+			{$table->addCell(2000, $cellColSpan2)->addText('Завершен', null, $cellHCentered);}
+		else{$table->addCell(2000, $cellColSpan2)->addText('', null, $cellHCentered);}
+					$table->addCell(2000, $cellColSpan2)->addText(date('m.d.Y',strtotime($dat['Datepayment'])).' '.$dat['Payment'], null, $cellHCentered);
+		
+		//Взносы
+		if($Allocations>0)
+		{
+			  $table->addRow(null, array('tblHeader' => true));
+		      $table->addCell(2000, $cellVCentered)->addText('', null, $cellHCentered);
+			  $table->addCell(2000, $cellVCentered)->addText('', null, $cellHCentered);
+			  $table->addCell(2000, $cellVCentered)->addText('', null, $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText('   ('.$Allocations*$kol.')', null, $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText('', null, $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText('', null, $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText($dat['Datepayment'], null, $cellHCentered);
+			  $summ2+=$dat['Allocations']*$kol;
+		}		
+		}
+
+		
+		//добавление строки итогов
+		$table->addRow(null, array('tblHeader' => true));
+		      $table->addCell(2000, $cellVCentered)->addText('', array('bold' => true), $cellHCentered);
+			  $table->addCell(2000, $cellVCentered)->addText('ИТОГО: ', array('bold' => true), $cellHCentered);
+			  $table->addCell(2000, $cellVCentered)->addText('', array('bold' => true), $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText($summ1.'   ('.$summ2.')', array('bold' => true), $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText($summ3, array('bold' => true), $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText('', array('bold' => true), $cellHCentered);
+			  $table->addCell(2000, $cellColSpan2)->addText('', array('bold' => true), $cellHCentered);
+	  $section->addText('Новый объем - '.$summ1.' руб.');
+	  $section->addText('Отработанный объем');
+	  if($summ3>0 and $summ3<=25000)
+	  {
+		  $proc=0.1;
+	  }
+	  else if($summ3>25000 and $summ3<=30000)
+	  {
+		  $proc=0.2;
+	  }
+	  else if($summ3>30000 and $summ3<=40000)
+	  {
+		  $proc=0.25;
+	  }
+	  	  else if($summ3>40000 and $summ3<=80000)
+	  {
+		  $proc=0.3;
+	  }
+	  	  else if($summ3>80000)
+	  {
+		  $proc=0.35;
+	  }
+	  $summ3=round($summ3,1);
+	  $otrab=$summ3*$proc;
+	  $otrab1=round($otrab-($otrab*0.13)-(8600/3),1);
+	  $itog=$summ3.' * '.$proc.' = '.$otrab.' - 13% - (8600/3) = '.$otrab1.' руб.';
+	  $section->addText($itog);
+	  $section->addText('Примечание');
+	  $text1='Договоров в работе (сиделка) – '.$number;
+	  $text2='из них новых - '.$new;
+	  $text3='Повторных договоров '.$long;
+	  $text4='Работа завершена по '.$endCont.' договорам.';
+	  $section->addText($text1);
+	  $section->addText($text2);
+	  $section->addText($text3);
+	  $section->addText($text4);
+	  $datenew=$start.' - '.$end;
+	  $Root=$_SESSION['Root'];
+	  $query=mysqli_query($link,"INSERT INTO ManagerReport VALUES ('','$id', '$FIO','$datenew','$summ1','$itog','$text1','$text2','$text3','$text4','$Root','$name')")or die(mysqli_error());
+	  
+$objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord,'Word2007');
+$objWriter->save($name);	
+
+$file=$name;
+
+header("Content-Type: application/octet-stream");
+
+header("Accept-Ranges: bytes");
+
+header("Content-Length: ".filesize($file));
+
+header("Content-Disposition: attachment; filename=".$file);  
+
+readfile($file);
+
+			mysqli_close($link);
+?>
